@@ -4,7 +4,7 @@ from config import settings
 from google import genai
 from typing import List
 
-# Initialize new client
+
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 class GeminiEmbeddings(Embeddings):
