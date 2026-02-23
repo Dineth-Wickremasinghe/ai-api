@@ -18,7 +18,7 @@ def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 async def query_rag(question: str) -> dict:
-    # Use new google-genai package directly
+
     from google import genai
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -48,7 +48,7 @@ Context:
 
 Question: {question}"""
 
-    # Call Gemini directly with new SDK
+
     response = client.models.generate_content(
         model=settings.GEMINI_MODEL,
         contents=prompt
