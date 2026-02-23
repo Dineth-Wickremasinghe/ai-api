@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from model import load_model, get_model
 from typing import List
-from routers import rag
+from routers import rag, retrain
 
 
 @asynccontextmanager
@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(rag.router)
+app.include_router(retrain.router)
 
 
 class PredictionRequest(BaseModel):
