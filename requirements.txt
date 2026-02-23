@@ -16,3 +16,6 @@ pypdf
 pymupdf
 python-multipart
 pydantic-settings
+psycopg2-binary
+sqlalchemy
+numpy
