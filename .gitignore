@@ -1,0 +1,22 @@
+# Virtual Environment
+venv/
+.env/
+env/
+.venv/
+
+# PyCharm
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
