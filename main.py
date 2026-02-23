@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from model import load_model, get_model
 from typing import List
+from routers import rag
 
 # --- Lifespan: load model on startup ---
 @asynccontextmanager
@@ -12,6 +13,8 @@ async def lifespan(app: FastAPI):
     # cleanup here if needed
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(rag.router)
 
 # --- Define the input schema (must match what Spring Boot sends) ---
 class PredictionRequest(BaseModel):

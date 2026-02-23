@@ -3,3 +3,23 @@ uvicorn
 scikit-learn
 joblib
 pydantic
+
+# RAG Stack
+langchain
+langchain-core
+langchain-google-genai
+google-genai
+langchain-chroma
+chromadb
+langchain-community
+google-generativeai
+langchain-text-splitters
+
+
+# PDF Processing
+pypdf
+pymupdf          # better PDF parsing (fitz)
+
+# Utilities
+python-multipart  # for file uploads in FastAPI
+pydantic-settings # for env config
