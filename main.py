@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from model import load_model, get_model
 from typing import List
 from routers import rag, retrain
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -13,6 +14,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # your Spring Boot port
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(rag.router)
 app.include_router(retrain.router)

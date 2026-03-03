@@ -31,8 +31,6 @@ def retrain_model(X, y):
         joblib.dump(new_model, MODEL_PATH)
         with _model_lock:
             model = new_model
-        print(f"[Retrain] Model replaced. New R²: {new_score:.4f}")
-        return True, new_score
+        return True, new_score, curr_score
     else:
-        print(f"[Retrain] No improvement. Kept current model. R²: {curr_score:.4f}")
-        return False, curr_score
+        return False, new_score, curr_score
