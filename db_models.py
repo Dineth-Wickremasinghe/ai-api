@@ -9,3 +9,10 @@ class Prediction(Base):
     prediction_result = Column(Float)
     actual_result     = Column(Float)
     created_at        = Column(DateTime)
+
+    fabric_type = Column(String)
+    fabric_pattern = Column(String)
+    cutting_method = Column(String)
+    operator_experience = Column(Float)
+    pattern_complexity = Column(Float)
+    marker_loss_pct = Column(Float)
