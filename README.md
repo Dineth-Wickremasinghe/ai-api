@@ -38,7 +38,7 @@ Spring Boot acts as the gateway — it forwards requests to this FastAPI service
 |---|---|
 | API Framework | FastAPI |
 | ML Inference | scikit-learn |
-| LLM | Google Gemini (`gemini-2.0-flash`) |
+| LLM | Google Gemini (`gemini-2.5-flash`) |
 | Embeddings | Google Gemini (`models/gemini-embedding-001`) |
 | Vector Database | ChromaDB (local, file-based) |
 | RAG Framework | LangChain (LCEL) |
