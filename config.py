@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     QDRANT_API_KEY: str | None = None
     COLLECTION_NAME: str = "documents"
     EMBEDDING_MODEL: str = "models/text-embedding-004"
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
 
