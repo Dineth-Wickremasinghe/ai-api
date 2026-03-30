@@ -1,21 +1,3 @@
-"""
-analysis.py
------------
-Error analysis for the Fabric AI waste prediction model.
-Table  : predictions
-Columns: actual_wastage_pct, predicted_wastage_pct, Pattern_Complexity,
-         Operator_Experience_Years, Fabric_Type_encoded,
-         Cutting_Method_Manual, Fabric_Pattern_encoded, Marker_Loss_pct
-
-BEFORE RUNNING:
-  1. Run this SQL in pgAdmin to add the missing column (only once):
-         ALTER TABLE predictions ADD COLUMN IF NOT EXISTS predicted_wastage_pct FLOAT;
-  2. Make sure your API is saving predicted_wastage_pct when it makes predictions.
-
-Run:
-    python analysis.py
-"""
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
