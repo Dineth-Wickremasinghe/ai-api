@@ -1,10 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
+
 from model import load_model, get_model
 from typing import List
 from routers import rag, retrain
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from error_analysis import *
 
 
 @asynccontextmanager
@@ -63,3 +67,20 @@ def predict(request: PredictionRequest):
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": get_model() is not None}
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+
+
+
+@app.get("/analysis/zscore")
+def zscore():
+    df = load_data()
+    return zscore_flagging(df)
+
+
+@app.get("/analysis/segmentation")
+def segmentation():
+    df = load_data()
+    return error_segmentation(df)

@@ -73,32 +73,32 @@ def _section_title(ax, text_str):
             va="bottom")
 
 
-# ── 1. Load from predictions table ────────────────────────────────────────────
+# ── 1. Load from prediction table ─────────────────────────────────────────────
 
 def load_data():
     query = """
         SELECT
             id,
             created_at,
-            actual_wastage_pct,
-            predicted_wastage_pct,
-            "Pattern_Complexity",
-            "Operator_Experience_Years",
-            "Fabric_Pattern_encoded",
-            "Cutting_Method_Manual",
-            "Fabric_Type_encoded",
-            "Marker_Loss_pct"
-        FROM predictions
-        WHERE actual_wastage_pct    IS NOT NULL
-          AND predicted_wastage_pct IS NOT NULL
+            actual_result,
+            prediction_result,
+            pattern_complexity,
+            operator_experience,
+            fabric_pattern,
+            cutting_method,
+            fabric_type,
+            marker_loss_pct
+        FROM prediction
+        WHERE actual_result    IS NOT NULL
+          AND prediction_result IS NOT NULL
         ORDER BY created_at
     """
     with engine.connect() as conn:
         df = pd.read_sql(text(query), conn)
 
-    df["residual"]  = df["predicted_wastage_pct"] - df["actual_wastage_pct"]
+    df["residual"]  = df["prediction_result"] - df["actual_result"]
     df["error_abs"] = df["residual"].abs()
-    df["error_pct"] = (df["residual"] / df["actual_wastage_pct"].replace(0, np.nan)) * 100
+    df["error_pct"] = (df["residual"] / df["actual_result"].replace(0, np.nan)) * 100
 
     print(f"Loaded {len(df)} rows with both actual and predicted values.")
     return df
@@ -114,7 +114,6 @@ def residual_analysis(df):
     std_res   = residuals.std()
     skew      = stats.skew(residuals)
     kurt      = stats.kurtosis(residuals)
-    n         = len(residuals)
 
     print(f"  Mean residual    : {mean_res:+.4f}  "
           f"{'⚠ model over-predicts' if mean_res > 0 else '⚠ model under-predicts'}")
@@ -161,7 +160,7 @@ def residual_analysis(df):
     ax1.axvspan(mean_res - std_res, mean_res + std_res,
                 alpha=0.07, color=RED, label="±1σ band")
 
-    ax1.set_xlabel("Residual  (predicted − actual wastage %)", fontsize=9)
+    ax1.set_xlabel("Residual  (prediction_result − actual_result)", fontsize=9)
     ax1.set_ylabel("Density", fontsize=9)
     ax1.legend(fontsize=8, framealpha=0.5)
     ax1.yaxis.grid(True)
@@ -170,7 +169,7 @@ def residual_analysis(df):
     ax2 = fig.add_subplot(gs_bot[1])
     _section_title(ax2, "B  Residuals vs predicted  (funnel = heteroscedasticity)")
 
-    sc = ax2.scatter(df["predicted_wastage_pct"], df["residual"],
+    sc = ax2.scatter(df["prediction_result"], df["residual"],
                      alpha=0.35, s=18, c=df["error_abs"],
                      cmap="RdYlBu_r", vmin=0, vmax=df["error_abs"].quantile(0.95))
     cb = fig.colorbar(sc, ax=ax2, pad=0.02, shrink=0.85)
@@ -179,11 +178,10 @@ def residual_analysis(df):
 
     ax2.axhline(0, color=RED, linestyle="--", linewidth=1.5)
 
-    # LOWESS smoothed trend
     try:
         from statsmodels.nonparametric.smoothers_lowess import lowess
-        sorted_idx = df["predicted_wastage_pct"].argsort()
-        px = df["predicted_wastage_pct"].values[sorted_idx]
+        sorted_idx = df["prediction_result"].argsort()
+        px = df["prediction_result"].values[sorted_idx]
         ry = df["residual"].values[sorted_idx]
         sm = lowess(ry, px, frac=0.3, return_sorted=True)
         ax2.plot(sm[:, 0], sm[:, 1], color=AMBER, linewidth=2,
@@ -246,40 +244,39 @@ def error_segmentation(df):
         legend_els = [
             Line2D([0], [0], color=RED, linewidth=1.2, linestyle="--",
                    label=f"High bias threshold ({threshold}%)"),
-            plt.Rectangle((0, 0), 1, 1, fc=RED,   label="High bias  (>5%)"),
-            plt.Rectangle((0, 0), 1, 1, fc=BLUE,  label="Acceptable (<5%)"),
+            plt.Rectangle((0, 0), 1, 1, fc=RED,  label="High bias  (>5%)"),
+            plt.Rectangle((0, 0), 1, 1, fc=BLUE, label="Acceptable (<5%)"),
         ]
         ax.legend(handles=legend_els, fontsize=7.5, framealpha=0.5)
 
     # A. Pattern Complexity
-    if df["Pattern_Complexity"].notna().any():
-        df["complex_bin"] = pd.cut(df["Pattern_Complexity"], bins=5)
+    if df["pattern_complexity"].notna().any():
+        df["complex_bin"] = pd.cut(df["pattern_complexity"], bins=5)
         seg = df.groupby("complex_bin", observed=True)["error_pct"].mean()
         _seg_bar(fig.add_subplot(gs[0, 0]), seg,
                  "A  Error by pattern complexity", "Pattern complexity bucket")
 
     # B. Operator Experience
-    if df["Operator_Experience_Years"].notna().any():
-        df["exp_bin"] = pd.cut(df["Operator_Experience_Years"], bins=5)
+    if df["operator_experience"].notna().any():
+        df["exp_bin"] = pd.cut(df["operator_experience"], bins=5)
         seg = df.groupby("exp_bin", observed=True)["error_pct"].mean()
         _seg_bar(fig.add_subplot(gs[0, 1]), seg,
                  "B  Error by operator experience", "Experience bucket (years)")
 
-    # C. Fabric Type — horizontal to fit encoded labels
-    if df["Fabric_Type_encoded"].notna().any():
-        seg = df.groupby("Fabric_Type_encoded")["error_pct"].mean()
+    # C. Fabric Type — horizontal to fit labels
+    if df["fabric_type"].notna().any():
+        seg = df.groupby("fabric_type")["error_pct"].mean()
         _seg_bar(fig.add_subplot(gs[1, 0]), seg,
-                 "C  Error by fabric type (encoded)", "Fabric type",
+                 "C  Error by fabric type", "Fabric type",
                  horizontal=True)
 
     # D. Cutting Method with box-plot overlay
-    if df["Cutting_Method_Manual"].notna().any():
-        ax_d = fig.add_subplot(gs[1, 1])
-        labels_cm = {0: "Automated", 1: "Manual"}
-        groups    = [df[df["Cutting_Method_Manual"] == k]["error_pct"].dropna()
-                     for k in sorted(labels_cm)]
-        seg       = df.groupby("Cutting_Method_Manual")["error_pct"].mean()
-        xpos      = range(len(seg))
+    if df["cutting_method"].notna().any():
+        ax_d  = fig.add_subplot(gs[1, 1])
+        methods = sorted(df["cutting_method"].dropna().unique())
+        groups  = [df[df["cutting_method"] == m]["error_pct"].dropna() for m in methods]
+        seg     = df.groupby("cutting_method")["error_pct"].mean()
+        xpos    = range(len(seg))
         colors_cm = _bar_colors(seg.values)
 
         ax_d.bar(xpos, seg.values, color=colors_cm,
@@ -294,10 +291,10 @@ def error_segmentation(df):
         ax_d.axhline(0, color="#2C2C2A", linewidth=0.8)
         ax_d.axhline(5, color=RED, linewidth=1, linestyle="--", alpha=0.6)
         ax_d.set_xticks(list(xpos))
-        ax_d.set_xticklabels([labels_cm[k] for k in sorted(labels_cm)], fontsize=9)
+        ax_d.set_xticklabels([str(m) for m in methods], fontsize=9)
         ax_d.set_ylabel("Mean % error", fontsize=9)
-        ax_d.set_title("D  Error by cutting method  (+ distribution box)", fontsize=10,
-                       fontweight="bold", pad=8)
+        ax_d.set_title("D  Error by cutting method  (+ distribution box)",
+                       fontsize=10, fontweight="bold", pad=8)
         ax_d.yaxis.grid(True)
 
     plt.savefig("plot_2_segmentation.png", dpi=150, bbox_inches="tight")
@@ -310,9 +307,9 @@ def error_segmentation(df):
 def zscore_flagging(df, threshold=2.5):
     print(f"\n─── METHOD 3: Z-SCORE FLAGGING  (threshold = ±{threshold}σ) ───")
 
-    mean_e  = df["error_pct"].mean()
-    std_e   = df["error_pct"].std()
-    df      = df.copy()
+    mean_e = df["error_pct"].mean()
+    std_e  = df["error_pct"].std()
+    df     = df.copy()
     df["z_score"] = (df["error_pct"] - mean_e) / std_e
     flagged = df[df["z_score"].abs() > threshold].copy()
 
@@ -322,9 +319,8 @@ def zscore_flagging(df, threshold=2.5):
 
     if not flagged.empty:
         print("\n  Top 10 worst predictions:")
-        cols = ["id", "Fabric_Type_encoded", "Cutting_Method_Manual",
-                "actual_wastage_pct", "predicted_wastage_pct",
-                "error_pct", "z_score"]
+        cols = ["id", "fabric_type", "cutting_method",
+                "actual_result", "prediction_result", "error_pct", "z_score"]
         print(flagged.nlargest(10, "z_score")[cols].to_string(index=False))
 
     fig = plt.figure(figsize=(15, 13), facecolor=BG)
@@ -355,10 +351,10 @@ def zscore_flagging(df, threshold=2.5):
     # Chart A — scatter flagged vs normal
     ax1 = fig.add_subplot(gs_bot[0, 0])
     _section_title(ax1, "A  Flagged vs normal predictions")
-    ax1.scatter(df.loc[normal_mask, "predicted_wastage_pct"],
+    ax1.scatter(df.loc[normal_mask, "prediction_result"],
                 df.loc[normal_mask, "error_pct"],
                 alpha=0.25, s=14, color=BLUE, label="Normal")
-    ax1.scatter(df.loc[~normal_mask, "predicted_wastage_pct"],
+    ax1.scatter(df.loc[~normal_mask, "prediction_result"],
                 df.loc[~normal_mask, "error_pct"],
                 alpha=0.85, s=55, color=RED, zorder=5,
                 edgecolors=WHITE, linewidths=0.6,
@@ -372,18 +368,16 @@ def zscore_flagging(df, threshold=2.5):
     # Chart B — z-score histogram
     ax2 = fig.add_subplot(gs_bot[0, 1])
     _section_title(ax2, "B  Z-score distribution")
-    z_vals = df["z_score"].dropna()
-    n_bins = 50
+    z_vals    = df["z_score"].dropna()
+    n_bins    = 50
     bin_edges = np.linspace(z_vals.min(), z_vals.max(), n_bins + 1)
     counts, edges = np.histogram(z_vals, bins=bin_edges)
-    bin_centers = (edges[:-1] + edges[1:]) / 2
-    bar_colors  = [RED if abs(c) > threshold else BLUE for c in bin_centers]
+    bin_centers   = (edges[:-1] + edges[1:]) / 2
+    bar_colors_z  = [RED if abs(c) > threshold else BLUE for c in bin_centers]
     ax2.bar(bin_centers, counts, width=(edges[1] - edges[0]) * 0.9,
-            color=bar_colors, edgecolor=WHITE, linewidth=0.2)
-    ax2.axvline( threshold, color=RED, linestyle="--", linewidth=1.5,
-                label=f"+{threshold}σ")
-    ax2.axvline(-threshold, color=RED, linestyle="--", linewidth=1.5,
-                label=f"-{threshold}σ")
+            color=bar_colors_z, edgecolor=WHITE, linewidth=0.2)
+    ax2.axvline( threshold, color=RED, linestyle="--", linewidth=1.5, label=f"+{threshold}σ")
+    ax2.axvline(-threshold, color=RED, linestyle="--", linewidth=1.5, label=f"-{threshold}σ")
     x_fit = np.linspace(z_vals.min(), z_vals.max(), 300)
     ax2.plot(x_fit, stats.norm.pdf(x_fit) * len(z_vals) * (edges[1] - edges[0]),
              color=GRAY, linewidth=1.5, linestyle=":", label="Standard normal")
@@ -533,12 +527,8 @@ if __name__ == "__main__":
     df = load_data()
 
     if df.empty:
-        print("\n⚠ No rows found with both actual_wastage_pct AND predicted_wastage_pct filled.")
-        print("  Steps to fix:")
-        print("  1. Run in pgAdmin:")
-        print("     ALTER TABLE predictions")
-        print("     ADD COLUMN IF NOT EXISTS predicted_wastage_pct FLOAT;")
-        print("  2. Make sure your API saves predicted_wastage_pct each time it predicts.")
+        print("\n⚠ No rows found with both actual_result AND prediction_result filled.")
+        print("  Make sure users have entered actual wastage values in the monitoring dashboard.")
     else:
         residual_analysis(df)
         error_segmentation(df)
