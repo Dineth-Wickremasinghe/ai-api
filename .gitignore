@@ -1,0 +1,25 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Vector database
+chroma_db/
+
+# Model files (large)
+*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
