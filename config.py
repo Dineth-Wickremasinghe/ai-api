@@ -7,6 +7,8 @@ load_dotenv()
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    COLLECTION_NAME: str = "documents"
+    EMBEDDING_MODEL: str = "models/text-embedding-004"
     GEMINI_MODEL: str = "gemini-2.5-flash"
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
