@@ -71,12 +71,12 @@ async def query_documents(request: QueryRequest):
 
 @router.delete("/collection")
 async def clear_collection():
-    """Clear all documents from the vector database"""
-
-    from services.vector_store import client, settings
-    client.delete_collection(settings.COLLECTION_NAME)
-    return {"message": "Collection cleared."}
-
+    try:
+        from services.vector_store import clear_vector_store
+        clear_vector_store()
+        return {"message": "Collection cleared."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
 # ENHANCED RAG ENDPOINTS (Risk Prediction)
