@@ -1,62 +1,66 @@
+# main.py
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-
-from model import load_model, get_model
-from typing import List
-from routers import rag, retrain
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from error_analysis import *
+from typing import List
+
+# Import routers
+from routers import rag, retrain
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_model()
+    print("Starting up Cutting RAG System...")
+    try:
+        from model import load_model
+        load_model()
+        print("✅ Model loaded successfully")
+    except Exception as e:
+        print(f"⚠️ Model not loaded: {e}")
     yield
+    print("Shutting down...")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, title="Cutting RAG System")
 
+# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # your Spring Boot port
+    allow_origins=["http://localhost:8080"],  # Spring Boot port
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Include routers
 app.include_router(rag.router)
 app.include_router(retrain.router)
 
 
+# Prediction Models
 class PredictionRequest(BaseModel):
-    features: List[float]   # e.g. [5.1, 3.5, 1.4, 0.2]
+    features: List[float]
 
 
 class PredictionResponse(BaseModel):
     prediction: float | int | str
-    confidence: float | None = None  # optional
+    confidence: float | None = None
 
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest):
+    from model import get_model
     model = get_model()
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
-
     try:
-
         input_data = [request.features]
-
         prediction = model.predict(input_data)[0]
-
-
         confidence = None
         if hasattr(model, "predict_proba"):
             proba = model.predict_proba(input_data)[0]
             confidence = float(max(proba))
-
         return PredictionResponse(
             prediction=prediction,
             confidence=confidence
@@ -64,23 +68,25 @@ def predict(request: PredictionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Complete Cutting RAG System is running",
+        "endpoints": {
+            "rag": "/rag/ingest, /rag/query",
+            "retrain": "/retrain",
+            "predict": "/predict"
+        }
+    }
+
+
 @app.get("/health")
-def health():
+async def health():
+    from model import get_model
     return {"status": "ok", "model_loaded": get_model() is not None}
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
 
-
-
-
-@app.get("/analysis/zscore")
-def zscore():
-    df = load_data()
-    return zscore_flagging(df)
-
-
-@app.get("/analysis/segmentation")
-def segmentation():
-    df = load_data()
-    return error_segmentation(df)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

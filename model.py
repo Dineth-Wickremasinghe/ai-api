@@ -1,9 +1,12 @@
+import os
 import joblib
 import copy
 import threading
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
+
+MODEL_PATH = "fabric_waste_pipeline.pkl"
 
 model = None
 _model_lock = threading.Lock()

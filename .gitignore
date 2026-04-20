@@ -1,22 +1,25 @@
-# Virtual Environment
-venv/
-.env/
-env/
+# Virtual environments
 .venv/
+venv/
+env/
 
-# PyCharm
+# IDE
 .idea/
+.vscode/
 
 # Python cache
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
 
 # Environment variables
 .env
+
+# Vector database
+chroma_db/
+
+# Model files (large)
+*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
