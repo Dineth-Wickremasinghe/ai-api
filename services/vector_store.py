@@ -36,3 +36,13 @@ def get_vector_store() -> Chroma:
         embedding_function=embeddings,
         persist_directory="./chroma_db"
     )
+
+# services/vector_store.py
+
+def clear_vector_store() -> None:
+    """Delete and recreate the ChromaDB collection."""
+    import chromadb
+    chroma_client = chromadb.PersistentClient(path="./chroma_db")
+    chroma_client.delete_collection(settings.COLLECTION_NAME)
+    # Calling get_vector_store() will recreate it fresh
+    get_vector_store()
